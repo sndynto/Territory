@@ -4,9 +4,9 @@ export const runtime = 'edge';
 
 const CID = 'bafybeihau2egcccbdxymeckmmbrqytbfor5gkt3en6d5fsbueymdbq7g6e';
 const GATEWAYS = [
+  'https://cloudflare-ipfs.com/ipfs/' + CID,
   'https://gateway.pinata.cloud/ipfs/' + CID,
   'https://ipfs.io/ipfs/' + CID,
-  'https://dweb.link/ipfs/' + CID,
 ];
 
 export async function GET(
@@ -19,14 +19,15 @@ export async function GET(
     try {
       const targetUrl = gw + '/' + tokenId + '.webp';
       const res = await fetch(targetUrl, {
-        next: { revalidate: 86400 },
+        next: { revalidate: 604800 }, // cache 7 days
+        signal: AbortSignal.timeout(4000), // 4s timeout per gateway
       });
 
       if (!res.ok) continue;
 
       const resHeaders = new Headers(res.headers);
       resHeaders.set('Access-Control-Allow-Origin', '*');
-      resHeaders.set('Cache-Control', 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=86400');
+      resHeaders.set('Cache-Control', 'public, max-age=604800, s-maxage=604800, stale-while-revalidate=86400, immutable');
 
       return new NextResponse(res.body, {
         status: res.status,
@@ -37,9 +38,9 @@ export async function GET(
     }
   }
 
-  // Fallback: redirect browser directly to IPFS
+  // Fallback: redirect browser directly to Cloudflare IPFS
   return NextResponse.redirect(
-    'https://gateway.pinata.cloud/ipfs/' + CID + '/' + tokenId + '.webp',
+    'https://cloudflare-ipfs.com/ipfs/' + CID + '/' + tokenId + '.webp',
     302
   );
 }
